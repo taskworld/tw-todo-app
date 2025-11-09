@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:8
+    container_name: mongo-todolist
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: todolist
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend-todolist
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URI: mongodb://mongo:27017/todolist
+      PORT: 3001
+      FRONTEND_URL: http://localhost:3000
+    networks:
+      - todolist-network
+
+volumes:
+  mongo_data:
+
+networks:
+  todolist-network:
+    driver: bridge
