@@ -1,13 +1,15 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const http = require('http');
-const socketIO = require('socket.io');
-const path = require('path');
+import dotenv from 'dotenv';
+import express from 'express';
+import mongoose from 'mongoose';
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+import path from 'path';
+
+dotenv.config();
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIO(server, {
+const server = createServer(app);
+const io = new SocketIOServer(server, {
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     methods: ['GET', 'POST']
@@ -26,6 +28,16 @@ mongoose.connect(MONGO_URI).then(() => {
   console.error('MongoDB connection error:', err);
 });
 
+interface ITodo {
+  _id: string;
+  text: string;
+  completed: boolean;
+  timerStarted: boolean;
+  timerStartTime: number | null;
+  savedTime: number;
+  createdAt: Date;
+}
+
 const todoSchema = new mongoose.Schema({
   text: String,
   completed: Boolean,
@@ -35,7 +47,7 @@ const todoSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-const Todo = mongoose.model('Todo', todoSchema);
+const Todo = mongoose.model<ITodo>('Todo', todoSchema);
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -49,7 +61,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('add-todo', async (text) => {
+  socket.on('add-todo', async (text: string) => {
     try {
       const todo = await Todo.create({ text, completed: false, timerStarted: false });
       io.emit('todo-added', todo);
@@ -58,11 +70,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('toggle-todo', async (id) => {
+  socket.on('toggle-todo', async (id: string) => {
     try {
       const todo = await Todo.findById(id);
       if (todo) {
-        // If completing and timer is running, save the elapsed time
         if (!todo.completed && todo.timerStarted && todo.timerStartTime) {
           const elapsed = Math.floor((Date.now() - todo.timerStartTime) / 1000);
           todo.savedTime = (todo.savedTime || 0) + elapsed;
@@ -78,7 +89,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('delete-todo', async (id) => {
+  socket.on('delete-todo', async (id: string) => {
     try {
       await Todo.findByIdAndDelete(id);
       io.emit('todo-deleted', id);
@@ -87,7 +98,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('start-timer', async (id) => {
+  socket.on('start-timer', async (id: string) => {
     try {
       const todo = await Todo.findById(id);
       if (!todo) return;
@@ -105,7 +116,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('resume-timer', async (id) => {
+  socket.on('resume-timer', async (id: string) => {
     try {
       const todo = await Todo.findById(id);
       if (!todo) return;
@@ -115,13 +126,14 @@ io.on('connection', (socket) => {
         timerStarted: true,
         timerStartTime: startTime
       });
-      io.emit('timer-started', { id, startTime });
+      // BUG B: Using socket.emit instead of io.emit - doesn't sync to other clients!
+      socket.emit('timer-started', { id, startTime });
     } catch (error) {
       console.error('Error resuming timer:', error);
     }
   });
 
-  socket.on('stop-timer', async (id) => {
+  socket.on('stop-timer', async (id: string) => {
     try {
       const todo = await Todo.findById(id);
       if (!todo) return;

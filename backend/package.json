@@ -1,10 +1,11 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.ts",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "tsx server.ts",
+    "dev": "tsx watch server.ts",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
@@ -15,5 +16,11 @@
     "express": "^5.1.0",
     "mongoose": "^8.19.3",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.10.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   }
 }
