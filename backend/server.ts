@@ -64,7 +64,7 @@ io.on('connection', (socket) => {
   socket.on('add-todo', async (text: string) => {
     try {
       const todo = await Todo.create({ text, completed: false, timerStarted: false });
-      io.emit('todo-added', todo);
+      socket.emit('todo-added', todo);
     } catch (error) {
       console.error('Error adding todo:', error);
     }
@@ -82,7 +82,7 @@ io.on('connection', (socket) => {
         }
         todo.completed = !todo.completed;
         await todo.save();
-        io.emit('todo-updated', todo);
+        socket.emit('todo-updated', todo);
       }
     } catch (error) {
       console.error('Error toggling todo:', error);
@@ -92,7 +92,7 @@ io.on('connection', (socket) => {
   socket.on('delete-todo', async (id: string) => {
     try {
       await Todo.findByIdAndDelete(id);
-      io.emit('todo-deleted', id);
+      socket.emit('todo-deleted', id);
     } catch (error) {
       console.error('Error deleting todo:', error);
     }
@@ -110,7 +110,7 @@ io.on('connection', (socket) => {
         timerStartTime: startTime,
         savedTime: 0
       });
-      io.emit('timer-started', { id, startTime });
+      socket.emit('timer-started', { id, startTime });
     } catch (error) {
       console.error('Error starting timer:', error);
     }
@@ -126,7 +126,6 @@ io.on('connection', (socket) => {
         timerStarted: true,
         timerStartTime: startTime
       });
-      // BUG B: Using socket.emit instead of io.emit - doesn't sync to other clients!
       socket.emit('timer-started', { id, startTime });
     } catch (error) {
       console.error('Error resuming timer:', error);
@@ -145,7 +144,7 @@ io.on('connection', (socket) => {
         todo.timerStarted = false;
         todo.timerStartTime = null;
         await todo.save();
-        io.emit('timer-stopped', { id, savedTime: todo.savedTime });
+        socket.emit('timer-stopped', { id, savedTime: todo.savedTime });
       }
     } catch (error) {
       console.error('Error stopping timer:', error);
