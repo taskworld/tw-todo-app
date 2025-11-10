@@ -10,6 +10,8 @@ services:
       - mongo_data:/data/db
     environment:
       MONGO_INITDB_DATABASE: todolist
+    networks:
+      - todolist-network
 
   backend:
     build:
@@ -23,9 +25,25 @@ services:
     environment:
       MONGO_URI: mongodb://mongo:27017/todolist
       PORT: 3001
-      FRONTEND_URL: http://localhost:3000
     networks:
       - todolist-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-todolist
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:3001
+    networks:
+      - todolist-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 
 volumes:
   mongo_data:
